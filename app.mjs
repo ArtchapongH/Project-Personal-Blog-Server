@@ -5,6 +5,7 @@ import cors from "cors";
 import connectionPool from "./utils/db.mjs";
 
 import postRouter from "./routes/postRouter.js";
+import authRouter from "./apps/auth.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,7 +24,7 @@ app.use(
   })
 );
 
-//
+// to delete - test api
 app.get("/profiles", (req, res) => {
   return res.json({
     data: {
@@ -34,14 +35,24 @@ app.get("/profiles", (req, res) => {
 });
 
 
+
+
+// authRouter
+app.use("/", authRouter);
+
 // postRouter
 app.use("/posts", postRouter);
 
 
+
+
+
+// to delete - check connection frontend to backend
 app.get("/health", (req, res) => {
   res.status(200).json({ message: "OK" });
 });
 
+// to delete - check database connection
 app.get("/health/db", async (req, res) => {
   try {
     await connectionPool.query("select 1");
@@ -54,9 +65,9 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
-// routes อื่นๆ
-// app.post("/posts", ...)
 
+
+// check server is running
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

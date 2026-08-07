@@ -1,9 +1,11 @@
 import {Router} from "express";
-import {connectionPool} from "../db.js";
+import connectionPool from "../utils/db.mjs";
 import postValidation from "../middlewares/postValidation.js";
+import {protect} from "../middlewares/authMiddleware.js";
 
 const postRouter = Router();
 
+posRouter.use(protect);
 
 // create post
 postRouter.post("/", postValidation, async (req, res) => {
