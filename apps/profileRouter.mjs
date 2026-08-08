@@ -51,10 +51,40 @@ profileRouter.get("/:id", async (req, res) => {
 
 });
 
+// update user password by id
+profileRouter.put("/:id/password", async (req, res) => {
+  const userId = req.params.id ?? req.user?.id;
+  const { password } = req.body;
+
+  try{
+    if (!password) {
+        return res.status(400).json({
+            message: "No password to update provided"
+        });
+    }
+
+    const query = `
+      UPDATE users
+      SET password = $1
+      WHERE id = $${userId}
+    `;
+
+    await connectionPool.query(query, [password]);
+
+    return res.status(200).json({ message: "Password updated successfully" });
+
+  }catch(err){
+    return res.status(500).json({
+      message: "Failed to update password",
+    });
+  }
+});
+
+
 // update user profile by id
 profileRouter.put("/:id", [protect, imageFileUpload], async (req, res) => {
   const userId = req.params.id ?? req.user?.id;
-  const { name, username } = req.body;
+  const { name, username} = req.body;
   const file = req.file;
 
   let profilePicUrl = null;

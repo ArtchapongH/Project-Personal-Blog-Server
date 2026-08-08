@@ -13,17 +13,39 @@ const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 
-// ✅ ใส่ CORS ตรงนี้ (หลังสร้าง app และก่อน routes)
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173", // Frontend local (Vite)
-      "http://localhost:3000", // Frontend local (React แบบอื่น)
-      "https://your-frontend.vercel.app", // Frontend ที่ Deploy แล้ว
-      // ✅ ให้เปลี่ยน https://your-frontend.vercel.app เป็น URL จริงของ Frontend ที่ deploy แล้ว
-    ],
-  })
-);
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "https://your-frontend.vercel.app",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // to delete - test api
 app.get("/profiles", (req, res) => {
