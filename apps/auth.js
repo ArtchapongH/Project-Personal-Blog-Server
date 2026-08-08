@@ -1,27 +1,36 @@
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import connectionPool from "../utils/db.mjs";
 
 const authRouter = Router();
+const jwtSecret = process.env.JWT_SECRET || process.env.SECRET_KEY;
 
 // 🐨 Todo: Exercise #1
 // ให้สร้าง API เพื่อเอาไว้ Register ตัว User แล้วเก็บข้อมูลไว้ใน Database ตามตารางที่ออกแบบไว้
 authRouter.post("/register", async (req, res) => {
-    
-    const newUser = req.body;
+    const { name, username, email, password, role } = req.body;
 
-    const salt = await bcrypt.genSalt(10);
+    if (!name || !username || !email || !password || !role) {
+        return res.status(400).json({
+            message: "name, username, email, password and role are required"
+        });
+    }
 
-    newUser.password = await bcrypt.hash(newUser.password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-        const query = `insert into users (name, username, email, password, role)
-        values ($1, $2, $3, $4, $5)`;
+        const query = `insert into users (id, name, username, email, password, role)
+        values ($1, $2, $3, $4, $5, $6)`;
 
         const values = [
-        newUser.name,
-        newUser.username,
-        newUser.email,
-        newUser.password,
-        newUser.role,
+        randomUUID(),
+        name,
+        username,
+        email,
+        hashedPassword,
+        role,
         ];
 
         await connectionPool.query(query, values);
@@ -30,8 +39,16 @@ authRouter.post("/register", async (req, res) => {
             message: "User registered successfully"
         });
     } catch (error) {
+        console.error("Register failed:", error.message);
+
+        if (error.code === "23505") {
+            return res.status(409).json({
+                message: "Email or username already exists"
+            });
+        }
+
         return res.status(500).json({
-            message: `Server could not register user because database connection`
+            message: "Server could not register user"
         });
     }
     
@@ -51,13 +68,15 @@ authRouter.post("/login", async (req, res) => {
             [req.body.email]
         );        
 
-        if (!results.rows[0].email) {
+        const user = results.rows[0];
+
+        if (!user) {
             return res.status(404).json({
                 message: "user not found"
             });
         }
 
-        const isValidPassword = await bcrypt.compare(req.body.password, results.rows[0].password);
+        const isValidPassword = await bcrypt.compare(req.body.password, user.password);
 
 
         if (!isValidPassword) {
@@ -66,11 +85,17 @@ authRouter.post("/login", async (req, res) => {
             });
         }
 
+        if (!jwtSecret) {
+            return res.status(500).json({
+                message: "JWT secret is not configured"
+            });
+        }
+
         const token = jwt.sign(
-            { id: results.rows[0].id, username: results.rows[0].username, role: results.rows[0].role, profile_pic: results.rows[0].profile_pic },
-            process.env.SECRET_KEY, 
+            { id: user.id, username: user.username, role: user.role, profile_pic: user.profile_pic },
+            jwtSecret, 
             {
-                expiresIn: "900000"
+                expiresIn: "15m"
             }
         );
 

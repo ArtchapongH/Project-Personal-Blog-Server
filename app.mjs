@@ -6,6 +6,7 @@ import connectionPool from "./utils/db.mjs";
 
 import postRouter from "./routes/postRouter.js";
 import authRouter from "./apps/auth.js";
+import profileRouter from "./apps/profileRouter.mjs";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -39,6 +40,9 @@ app.get("/profiles", (req, res) => {
 
 // authRouter
 app.use("/", authRouter);
+
+// profileRouter
+app.use("/profiles", profileRouter);
 
 // postRouter
 app.use("/posts", postRouter);
