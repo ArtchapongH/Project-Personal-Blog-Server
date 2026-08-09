@@ -3,6 +3,8 @@ import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import connectionPool from "../utils/db.mjs";
 import { protect } from "../middlewares/protect.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -63,13 +65,15 @@ profileRouter.put("/:id/password", async (req, res) => {
         });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const query = `
       UPDATE users
       SET password = $1
       WHERE id = $${userId}
     `;
 
-    await connectionPool.query(query, [password]);
+    await connectionPool.query(query, [hashedPassword]);
 
     return res.status(200).json({ message: "Password updated successfully" });
 
