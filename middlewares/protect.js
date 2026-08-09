@@ -4,17 +4,37 @@
 import jwt from "jsonwebtoken";
 
 export const protect = (req, res, next) => {
-    const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
+    let tokenWithoutBearer = null;
 
-    if(!token || !token.startsWith("Bearer ")){
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        tokenWithoutBearer = authHeader.split(" ")[1];
+    }
+
+    if (!tokenWithoutBearer && req.headers.cookie) {
+        const parsedCookies = req.headers.cookie.split(";").map((cookie) => cookie.trim());
+        const authCookie = parsedCookies.find((cookie) => cookie.startsWith("auth_token="));
+
+        if (authCookie) {
+            tokenWithoutBearer = authCookie.replace("auth_token=", "");
+        }
+    }
+
+    if (!tokenWithoutBearer) {
         return res.status(401).json({
             message: "Token has invalid format"
         });
     }
 
-    const tokenWithoutBearer = token.split(" ")[1];
+    const jwtSecret = process.env.JWT_SECRET || process.env.SECRET_KEY;
 
-    jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET, (err, payload) => {
+    if (!jwtSecret) {
+        return res.status(500).json({
+            message: "JWT secret is not configured"
+        });
+    }
+
+    jwt.verify(tokenWithoutBearer, jwtSecret, (err, payload) => {
 
         if(err){
             return res.status(401).json({

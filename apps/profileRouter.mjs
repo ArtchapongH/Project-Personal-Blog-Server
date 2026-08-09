@@ -27,7 +27,7 @@ profileRouter.get("/:id", async (req, res) => {
     // 2) เขียน Query เพื่ออ่านข้อมูลโพสต์ ด้วย Connection Pool
     const results = await connectionPool.query(
       `
-      SELECT id, name, username, profile_pic, email, password 
+      SELECT id, name, username, profile_pic, email
       FROM users
       WHERE id = $1
       `,

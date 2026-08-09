@@ -61,7 +61,7 @@ authRouter.post("/login", async (req, res) => {
     try{
         const results = await connectionPool.query(
             `
-            SELECT users.id, users.username, users.email, users.password, users.role, users.profile_pic
+            SELECT users.id, users.username, users.email, users.password, users.role
             FROM users
             WHERE users.email = $1
             `,
@@ -92,12 +92,28 @@ authRouter.post("/login", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role, profile_pic: user.profile_pic },
+            { id: user.id, role: user.role },
             jwtSecret, 
             {
                 expiresIn: "15m"
             }
         );
+
+        // Ensure a single auth cookie is used and overwritten on each login.
+        res.clearCookie("auth_token", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+        });
+
+        res.cookie("auth_token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 15 * 60 * 1000,
+            path: "/",
+        });
 
         return res.json({
             message: "Login successful",
