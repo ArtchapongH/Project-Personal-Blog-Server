@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 import connectionPool from "../utils/db.mjs";
 import { protect } from "../middlewares/protect.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -27,7 +26,7 @@ profileRouter.get("/:id", async (req, res) => {
     // 2) เขียน Query เพื่ออ่านข้อมูลโพสต์ ด้วย Connection Pool
     const results = await connectionPool.query(
       `
-      SELECT id, name, username, profile_pic, email
+      SELECT id, name, username, profile_pic, email, password
       FROM users
       WHERE id = $1
       `,
@@ -54,15 +53,53 @@ profileRouter.get("/:id", async (req, res) => {
 });
 
 // update user password by id
-profileRouter.put("/:id/password", async (req, res) => {
+profileRouter.put("/:id/password", protect, async (req, res) => {
   const userId = req.params.id ?? req.user?.id;
-  const { password } = req.body;
+  const { currentPassword, password } = req.body;
 
-  try{
+  try {
+    if (!currentPassword) {
+      return res.status(400).json({
+        message: "Current password is required",
+      });
+    }
+
     if (!password) {
-        return res.status(400).json({
-            message: "No password to update provided"
-        });
+      return res.status(400).json({
+        message: "No password to update provided",
+      });
+    }
+
+    if (req.user?.id !== userId && req.user?.role !== "admin") {
+      return res.status(403).json({
+        message: "You are not allowed to update this password",
+      });
+    }
+
+    const userResult = await connectionPool.query(
+      `
+      SELECT password
+      FROM users
+      WHERE id = $1
+      `,
+      [userId]
+    );
+
+    if (!userResult.rows[0]) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      userResult.rows[0].password
+    );
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        message: "Current password is incorrect",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -70,14 +107,14 @@ profileRouter.put("/:id/password", async (req, res) => {
     const query = `
       UPDATE users
       SET password = $1
-      WHERE id = $${userId}
+      WHERE id = $2
     `;
 
-    await connectionPool.query(query, [hashedPassword]);
+    await connectionPool.query(query, [hashedPassword, userId]);
 
     return res.status(200).json({ message: "Password updated successfully" });
 
-  }catch(err){
+  } catch (err) {
     return res.status(500).json({
       message: "Failed to update password",
     });
