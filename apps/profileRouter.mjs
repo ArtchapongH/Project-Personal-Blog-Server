@@ -26,7 +26,7 @@ profileRouter.get("/:id", async (req, res) => {
     // 2) เขียน Query เพื่ออ่านข้อมูลโพสต์ ด้วย Connection Pool
     const results = await connectionPool.query(
       `
-      SELECT id, name, username, profile_pic, email, password
+      SELECT id, name, username, profile_pic, email, password, biography
       FROM users
       WHERE id = $1
       `,
@@ -125,7 +125,7 @@ profileRouter.put("/:id/password", protect, async (req, res) => {
 // update user profile by id
 profileRouter.put("/:id", [protect, imageFileUpload], async (req, res) => {
   const userId = req.params.id ?? req.user?.id;
-  const { name, username} = req.body;
+  const { name, username, email, biography} = req.body;
   const file = req.file;
 
   let profilePicUrl = null;
@@ -172,6 +172,14 @@ profileRouter.put("/:id", [protect, imageFileUpload], async (req, res) => {
     if (username) {
       fieldsToUpdate.push(`username = $${paramIndex++}`);
       values.push(username);
+    }
+    if (email) {
+      fieldsToUpdate.push(`email = $${paramIndex++}`);
+      values.push(email);
+    }
+    if (biography) {
+      fieldsToUpdate.push(`biography = $${paramIndex++}`);
+      values.push(biography);
     }
     if (profilePicUrl) {
       fieldsToUpdate.push(`profile_pic = $${paramIndex++}`);
