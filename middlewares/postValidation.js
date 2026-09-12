@@ -6,7 +6,7 @@ function postValidation(req, res, next) {
         return res.status(400).json({ message: "Title is required" });
     }
 
-    if (typeof title !== "string") {
+    if (typeof title !== "string" || title.trim() === "") {
         return res.status(400).json({ message: "Title must be a string" });
     }
 
@@ -54,7 +54,7 @@ function postValidation(req, res, next) {
         return res.status(400).json({ message: "Status ID is required" });
     }
     
-    if (typeof status_id !== "number") {
+    if (typeof status_id !== "number" || ![1, 2].includes(status_id)) {
         return res.status(400).json({ message: "Status ID must be a number" });
     }
     
