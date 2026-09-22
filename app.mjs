@@ -5,6 +5,7 @@ import cors from "cors";
 import connectionPool from "./utils/db.mjs";
 
 import postRouter from "./routes/postRouter.js";
+import categoryRouter from "./routes/categoryRouter.mjs";
 import authRouter from "./apps/auth.js";
 import profileRouter from "./apps/profileRouter.mjs";
 
@@ -68,6 +69,9 @@ app.use("/profiles", profileRouter);
 
 // postRouter
 app.use("/posts", postRouter);
+
+// categoryRouter
+app.use("/categories", categoryRouter);
 
 
 
