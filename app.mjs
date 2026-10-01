@@ -8,6 +8,8 @@ import postRouter from "./routes/postRouter.js";
 import categoryRouter from "./routes/categoryRouter.mjs";
 import authRouter from "./apps/auth.js";
 import profileRouter from "./apps/profileRouter.mjs";
+import likeRouter from "./routes/likeRouter.js";
+import commentRouter from "./routes/commentRouter.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -69,6 +71,8 @@ app.use("/profiles", profileRouter);
 
 // postRouter
 app.use("/posts", postRouter);
+app.use("/posts", likeRouter);
+app.use("/posts", commentRouter);
 
 // categoryRouter
 app.use("/categories", categoryRouter);

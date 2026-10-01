@@ -1,14 +1,85 @@
 import {Router} from "express";
+import multer from "multer";
+import { createClient } from "@supabase/supabase-js";
 import connectionPool from "../utils/db.mjs";
 import postValidation from "../middlewares/postValidation.js";
 import {protect} from "../middlewares/protect.js";
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+let supabaseClient = null;
+if (supabaseUrl && supabaseAnonKey) {
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+}
+
+const multerUpload = multer({ storage: multer.memoryStorage() });
+const imageFileUpload = multerUpload.single("imageFile");
+
+async function uploadPostImage(req, res, next) {
+  const file = req.file;
+  if (!file) {
+    return next();
+  }
+
+  try {
+    if (supabaseClient) {
+      const bucketName = "my-personal-blog";
+      const filePath = `posts/${Date.now()}`;
+
+      const { data, error } = await supabaseClient.storage
+        .from(bucketName)
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        throw new Error("Failed to upload post image to storage");
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseClient.storage.from(bucketName).getPublicUrl(data.path);
+
+      req.body.image = publicUrl;
+    } else {
+      req.body.image = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+    }
+
+    return next();
+  } catch (uploadError) {
+    return res.status(500).json({
+      message: uploadError.message || "Failed to upload post image to storage",
+    });
+  }
+}
+
+function coerceMultipartPostBody(req, _res, next) {
+  const contentType = req.headers["content-type"] || "";
+  if (contentType.includes("multipart/form-data")) {
+    if (typeof req.body?.category_id === "string") {
+      req.body.category_id = Number(req.body.category_id);
+    }
+    if (typeof req.body?.status_id === "string") {
+      req.body.status_id = Number(req.body.status_id);
+    }
+  }
+  next();
+}
 
 const postRouter = Router();
 
 //postRouter.use(protect);
 
 // create post
-postRouter.post("/", postValidation, async (req, res) => {
+postRouter.post(
+  "/",
+  imageFileUpload,
+  uploadPostImage,
+  coerceMultipartPostBody,
+  postValidation,
+  async (req, res) => {
   // ลอจิกในการเก็บข้อมูลของโพสต์ลงในฐานข้อมูล
 
   // 1) Access ข้อมูลใน Body จาก Request ด้วย req.body
