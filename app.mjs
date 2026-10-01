@@ -73,6 +73,8 @@ app.use("/profiles", profileRouter);
 app.use("/posts", postRouter);
 app.use("/posts", likeRouter);
 app.use("/posts", commentRouter);
+app.use("/likes", likeRouter);
+app.use("/comments", commentRouter);
 
 // categoryRouter
 app.use("/categories", categoryRouter);

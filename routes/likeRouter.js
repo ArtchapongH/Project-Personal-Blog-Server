@@ -4,6 +4,22 @@ import {protect} from "../middlewares/protect.js";
 
 const likeRouter = Router();
 
+likeRouter.get("/", async (_req, res) => {
+	try {
+		const result = await connectionPool.query(
+			`SELECT p.id AS post_id, p.title, l.liked_at, u.name, u.profile_pic
+			 FROM posts AS p
+			 INNER JOIN likes AS l ON p.id = l.post_id
+			 INNER JOIN users AS u ON l.user_id = u.id
+			 ORDER BY l.liked_at DESC`
+		);
+
+		return res.status(200).json({ likes: result.rows });
+	} catch {
+		return res.status(500).json({ message: "Could not read likes" });
+	}
+});
+
 likeRouter.get("/:postId/likes", async (req, res) => {
 	try {
 		const result = await connectionPool.query(

@@ -4,6 +4,22 @@ import {protect} from "../middlewares/protect.js";
 
 const commentRouter = Router();
 
+commentRouter.get("/", async (_req, res) => {
+	try {
+		const result = await connectionPool.query(
+			`SELECT p.id AS post_id, p.title, c.comment_text, c.created_at, u.name, u.profile_pic
+			 FROM posts AS p
+			 INNER JOIN comments AS c ON p.id = c.post_id
+			 INNER JOIN users AS u ON c.user_id = u.id
+			 ORDER BY c.created_at DESC`
+		);
+
+		return res.status(200).json({ comments: result.rows });
+	} catch {
+		return res.status(500).json({ message: "Could not read comments" });
+	}
+});
+
 // read all comments by post id
 commentRouter.get("/:postId/comments", async (req, res) => {
 	try {
