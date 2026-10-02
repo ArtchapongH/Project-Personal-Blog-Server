@@ -255,7 +255,7 @@ postRouter.get("/:postId", async (req, res) => {
 });
 
 // update post by id
-postRouter.put("/:postId", postValidation, async (req, res) => {
+postRouter.put("/:postId", imageFileUpload, uploadPostImage, coerceMultipartPostBody, postValidation, async (req, res) => {
   // ลอจิกในการแก้ไขข้อมูลโพสต์ด้วย Id ในระบบ
 
   // 1) Access ตัว Endpoint Parameter ด้วย req.params
