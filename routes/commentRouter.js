@@ -25,7 +25,7 @@ commentRouter.get("/:postId/comments", async (req, res) => {
 	try {
 		const result = await connectionPool.query(
 			`SELECT comments.id, comments.post_id, comments.user_id, comments.comment_text, comments.created_at,
-			        users.name, users.username
+			        users.name, users.username, users.profile_pic
 			 FROM comments
 			 JOIN users ON users.id = comments.user_id
 			 WHERE comments.post_id = $1
