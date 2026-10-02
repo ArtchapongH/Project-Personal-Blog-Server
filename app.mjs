@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-
 import express from "express";
 import cors from "cors";
 import connectionPool from "./utils/db.mjs";
@@ -22,7 +20,10 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
-  "https://your-frontend.vercel.app",
+  ...(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 ];
 
 const corsOptions = {
@@ -39,16 +40,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
-    res.header("Access-Control-Allow-Credentials", "true");
-    return res.sendStatus(204);
-  }
-  next();
-});
 
 // to delete - test api
 app.get("/profiles", (req, res) => {
@@ -103,16 +94,10 @@ app.get("/health/db", async (req, res) => {
 
 
 
-// check server is running
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-connectionPool
-  .query("select 1")
-  .then(() => {
-    console.log("Database connected");
-  })
-  .catch((error) => {
-    console.error("Database connection failed:", error.message);
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
+}
+
+export default app;
