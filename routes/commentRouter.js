@@ -20,6 +20,33 @@ commentRouter.get("/", async (_req, res) => {
 	}
 });
 
+// commenters shown in the notification popup (admin: all, user: on posts they commented)
+commentRouter.get("/commenters", protect, async (req, res) => {
+	try {
+		const result = req.user.role === "admin"
+			? await connectionPool.query(
+				`SELECT DISTINCT u.name, u.profile_pic
+				 FROM comments AS c
+				 INNER JOIN users AS u ON u.id = c.user_id`
+			)
+			: await connectionPool.query(
+				`SELECT DISTINCT u.name, u.profile_pic
+				 FROM posts AS p
+				 INNER JOIN comments AS c ON p.id = c.post_id
+				 INNER JOIN users AS u ON c.user_id = u.id
+				 WHERE p.id IN (
+					SELECT c2.post_id FROM comments AS c2 WHERE c2.user_id = $1
+				 )
+				 AND c.user_id <> $1`,
+				[req.user.id]
+			);
+
+		return res.status(200).json({ commenters: result.rows });
+	} catch {
+		return res.status(500).json({ message: "Could not read commenters" });
+	}
+});
+
 // read all comments by post id
 commentRouter.get("/:postId/comments", async (req, res) => {
 	try {
